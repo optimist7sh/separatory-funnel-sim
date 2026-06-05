@@ -179,7 +179,7 @@
       <div class="controls">
         <button class="b-toggle" id="btnCap">🔓 마개: <span id="capBtnTxt">닫힘</span></button>
         <button class="b-toggle" id="btnTap">🔧 꼭지: <span id="tapBtnTxt">닫힘</span></button>
-        <button class="b-act" id="btnSettle">⏳ 정치하기(기다리기)</button>
+        <button class="b-act" id="btnSettle">⏳ 평평하고 일정한 곳에 두기(기다리기)</button>
         <button class="b-act" id="btnPour" disabled>🫗 위층 따라내기</button>
         <button class="b-reset" id="btnReset">↺ 처음부터</button>
       </div>
@@ -190,7 +190,7 @@
     <div class="panel">
       <div class="coach" id="coach">
         <div class="step" id="coachStep">STEP 1 / 4</div>
-        <div class="msg" id="coachMsg">혼합물이 들어 있습니다. 먼저 <b>정치하기</b>를 눌러 두 층으로 나뉘길 기다리세요.</div>
+        <div class="msg" id="coachMsg">혼합물이 들어 있습니다. 먼저 <b>평평하고 일정한 곳에 두기</b>를 눌러 두 층으로 나뉘길 기다리세요.</div>
       </div>
 
       <div class="steps">
@@ -312,9 +312,9 @@ function toggleTap(){ if(state==="done")return; tapOpen=!tapOpen; updateValves()
 function afterValveChange(){
   if(state==="filled"||state==="settling"){
     if(tapOpen){
-      coach("아직 두 층으로 안 나뉘었어요! 지금 꼭지를 열면 <b>섞인 채로</b> 흘러나와 분리에 실패합니다. 먼저 <b>정치하기</b>를 누르세요.","warn");
+      coach("아직 두 층으로 안 나뉘었어요! 지금 꼭지를 열면 <b>섞인 채로</b> 흘러나와 분리에 실패합니다. 먼저 <b>평평하고 일정한 곳에 두기</b>를 누르세요.","warn");
     } else {
-      coach("혼합물이 들어 있습니다. <b>정치하기</b>를 눌러 두 층으로 나뉘길 기다리세요.");
+      coach("혼합물이 들어 있습니다. <b>평평하고 일정한 곳에 두기</b>를 눌러 두 층으로 나뉘길 기다리세요.");
     }
     return;
   }
@@ -334,10 +334,10 @@ function afterValveChange(){
   }
 }
 
-/* ===== 정치 ===== */
+/* ===== 평평하고 일정한 곳에 두기 ===== */
 function settle(){
   if(state!=="filled"){ return; }
-  if(tapOpen){ coach("꼭지를 먼저 잠가 주세요. 열린 채로 정치하면 새어 나올 수 있어요.","warn"); return; }
+  if(tapOpen){ coach("꼭지를 먼저 잠가 주세요. 열린 채로 평평하고 일정한 곳에 두면 새어 나올 수 있어요.","warn"); return; }
   state="settling"; markSteps();
   coach("두 층으로 나뉘는 중… 밀도가 큰 물이 아래로 가라앉습니다.","");
   const start=performance.now(), dur=2000;
@@ -403,7 +403,7 @@ function reset(){
   state="filled"; capOpen=false; tapOpen=false; drainP=0; pourP=0;
   updateValves(); markSteps(); draw();
   $("btnPour").disabled=true; $("doneBox").classList.remove("show");
-  coach("혼합물이 들어 있습니다. 먼저 <b>정치하기</b>를 눌러 두 층으로 나뉘길 기다리세요.","","STEP 1 / 4");
+  coach("혼합물이 들어 있습니다. 먼저 <b>평평하고 일정한 곳에 두기</b>를 눌러 두 층으로 나뉘길 기다리세요.","","STEP 1 / 4");
 }
 
 /* ===== 이벤트 ===== */
