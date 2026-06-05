@@ -1,0 +1,5 @@
+# tooling/preview artifacts — not for deploy
+.claude/
+stage.html
+node_modules/
+*.log

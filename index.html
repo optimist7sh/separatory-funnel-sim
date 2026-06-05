@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>분별깔때기 시뮬레이션 — 밀도 차를 이용한 분리</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --navy:#1b2a4a; --navy-2:#26375c; --ink:#1f2937; --muted:#64748b;
+    --gold:#c8a24a; --gold-soft:#efe2bd;
+    --oil:#f3cf3d; --water:#4f9fe0; --mix:#aeb98a; --glass:#e9f1fb; --glass-line:#9fc0e6;
+    --bg:#f5f6fa; --card:#fff; --line:#e5e8ef; --good:#157347; --warn:#e8590c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:"Pretendard","Malgun Gothic",-apple-system,"Apple SD Gothic Neo",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.55;padding:16px}
+  .wrap{max-width:980px;margin:0 auto}
+  header{background:linear-gradient(135deg,var(--navy),var(--navy-2));color:#fff;border-radius:16px;
+    padding:18px 22px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(27,42,74,.16)}
+  header::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;
+    background:radial-gradient(circle,rgba(200,162,74,.35),transparent 70%)}
+  .eyebrow{font-size:.74rem;letter-spacing:.13em;color:var(--gold-soft);font-weight:700}
+  header h1{font-size:1.4rem;font-weight:800;margin:3px 0 4px;letter-spacing:-.02em}
+  header p{font-size:.88rem;color:#cdd6e8}
+  .std{display:inline-block;margin-top:9px;background:rgba(255,255,255,.12);border:1px solid rgba(231,214,168,.4);
+    padding:5px 12px;border-radius:999px;font-size:.78rem;color:var(--gold-soft);font-weight:600}
+
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:14px}
+  @media(max-width:780px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;
+    box-shadow:0 3px 10px rgba(31,41,55,.04)}
+  svg{width:100%;height:auto;display:block}
+
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  button{font-family:inherit;font-weight:700;font-size:.9rem;border:0;border-radius:10px;padding:11px 14px;cursor:pointer;
+    transition:transform .08s, box-shadow .15s}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .b-toggle{background:#eef1f6;color:var(--navy);border:1.5px solid #d8deea}
+  .b-toggle.open{background:var(--good);color:#fff;border-color:transparent}
+  .b-act{background:var(--navy);color:#fff;box-shadow:0 4px 12px rgba(27,42,74,.22)}
+  .b-reset{background:#fff;color:var(--warn);border:1.5px solid #ffd8bf}
+
+  /* 코치 패널 */
+  .coach{border-radius:12px;padding:14px;background:#f0f5ff;border:1px solid #cdddff}
+  .coach .step{font-size:.78rem;font-weight:800;color:var(--navy);letter-spacing:.04em}
+  .coach .msg{font-size:.95rem;font-weight:600;margin-top:5px}
+  .coach.warn{background:#fff2e8;border-color:#ffd8bf}
+  .coach.warn .msg{color:var(--warn)}
+  .coach.good{background:#eaf7ef;border-color:#bfe6cd}
+  .coach.good .msg{color:var(--good)}
+
+  .steps{margin-top:14px}
+  .steps h3{font-size:.85rem;color:var(--muted);font-weight:700;margin-bottom:8px}
+  .steps li{list-style:none;font-size:.86rem;padding:7px 10px;border-radius:9px;color:var(--muted);
+    display:flex;gap:8px;align-items:flex-start;margin-bottom:4px}
+  .steps li .n{font-weight:800;color:#b6bfce;min-width:16px}
+  .steps li.cur{background:#f0f5ff;color:var(--navy);font-weight:700}
+  .steps li.cur .n{color:var(--navy)}
+  .steps li.done{color:#9aa3b2;text-decoration:line-through}
+  .steps li.done .n{color:var(--good)}
+
+  .density{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+  .density h3{font-size:.85rem;color:var(--muted);font-weight:700;margin-bottom:8px}
+  .drow{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:.85rem;font-weight:700}
+  .drow .lbl{width:64px}
+  .dbar{height:16px;border-radius:5px}
+  .drow .val{color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+
+  .done-box{margin-top:14px;border-radius:12px;padding:16px;color:#fff;
+    background:linear-gradient(135deg,#157347,#1a8a55);display:none}
+  .done-box.show{display:block}
+  .done-box h3{font-size:1rem;margin-bottom:6px}
+  .done-box p{font-size:.9rem;color:#e8fff2}
+  .done-box .q{margin-top:10px;background:rgba(255,255,255,.13);border-radius:9px;padding:10px;font-size:.88rem}
+
+  .safety{font-size:.78rem;color:var(--muted);margin-top:10px;background:#fffdf5;border:1px dashed var(--gold);
+    border-radius:10px;padding:9px 12px}
+  footer{text-align:center;color:var(--muted);font-size:.78rem;margin:18px 0 4px}
+  .clickable{cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">1학년 2반 · 혼합물의 분리</div>
+    <h1>분별깔때기 시뮬레이션</h1>
+    <p>물과 식용유를 <b>밀도 차</b>로 분리해 보자. 안전하게 실수도 해 보세요!</p>
+    <span class="std">[9과08-03] 물질의 특성(밀도)을 이용한 혼합물 분리</span>
+  </header>
+
+  <div class="grid">
+    <!-- 실험 장치 -->
+    <div class="panel">
+      <svg id="app" viewBox="0 0 440 600" role="img" aria-label="분별깔때기 실험 장치">
+        <!-- 스탠드 기둥 -->
+        <rect x="392" y="60" width="10" height="500" rx="4" fill="#9aa3b2"/>
+        <rect x="300" y="556" width="118" height="12" rx="5" fill="#9aa3b2"/>
+        <!-- 집게(분별깔때기 고정) -->
+        <rect x="226" y="170" width="170" height="9" rx="4" fill="#7c8597"/>
+
+        <!-- 비커 (가) : 아래층(물) 받기 -->
+        <g id="beakerGa">
+          <path d="M104,432 L196,432 L188,540 L112,540 Z" fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2"/>
+          <clipPath id="clipGa"><path d="M104,432 L196,432 L188,540 L112,540 Z"/></clipPath>
+          <rect id="fillGa" x="100" y="540" width="100" height="0" fill="var(--water)" clip-path="url(#clipGa)" opacity="0.9"/>
+          <text x="150" y="556" text-anchor="middle" font-size="13" font-weight="700" fill="var(--navy)">비커 (가)</text>
+        </g>
+        <!-- 비커 (나) : 위층(식용유) 받기 -->
+        <g id="beakerNa">
+          <path d="M300,452 L384,452 L377,540 L307,540 Z" fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2"/>
+          <clipPath id="clipNa"><path d="M300,452 L384,452 L377,540 L307,540 Z"/></clipPath>
+          <rect id="fillNa" x="296" y="540" width="92" height="0" fill="var(--oil)" clip-path="url(#clipNa)" opacity="0.92"/>
+          <text x="342" y="556" text-anchor="middle" font-size="13" font-weight="700" fill="var(--navy)">비커 (나)</text>
+        </g>
+
+        <!-- 스트림: 아래로(가) / 위로(나) -->
+        <rect id="streamDown" x="146" y="372" width="8" height="62" fill="var(--water)" opacity="0" rx="3"/>
+        <path id="streamUp" d="M150,96 C150,40 342,40 342,452" fill="none" stroke="var(--oil)" stroke-width="8" opacity="0" stroke-linecap="round"/>
+
+        <!-- ===== 분별깔때기 ===== -->
+        <!-- 액체 클립 (몸통 + 스템) -->
+        <defs>
+          <clipPath id="funnelClip">
+            <path d="M138,90 C108,102 74,132 74,176 C74,218 106,280 150,302 C194,280 226,218 226,176 C226,132 192,102 162,90 Z"/>
+            <rect x="145" y="300" width="10" height="56"/>
+          </clipPath>
+        </defs>
+        <!-- 혼합/층 액체 (클립됨) -->
+        <g clip-path="url(#funnelClip)">
+          <rect id="liqMix"  x="60" y="96" width="200" height="262" fill="var(--mix)" opacity="0"/>
+          <rect id="liqWater" x="60" y="200" width="200" height="158" fill="var(--water)" opacity="0"/>
+          <rect id="liqOil"   x="60" y="96"  width="200" height="104" fill="var(--oil)" opacity="0"/>
+          <!-- 경계선 -->
+          <rect id="boundary" x="60" y="198" width="200" height="2.4" fill="#2c3a52" opacity="0"/>
+          <!-- 아래층(물)에 흩어진 물방울 — 식용유는 위에서 층으로 뜸 -->
+          <g id="emulsion" opacity="0">
+            <circle cx="110" cy="180" r="9"  fill="var(--water)"/>
+            <circle cx="150" cy="178" r="10" fill="var(--water)"/>
+            <circle cx="190" cy="182" r="8"  fill="var(--water)"/>
+            <circle cx="120" cy="210" r="10" fill="var(--water)"/>
+            <circle cx="160" cy="212" r="11" fill="var(--water)"/>
+            <circle cx="198" cy="208" r="9"  fill="var(--water)"/>
+            <circle cx="100" cy="236" r="8"  fill="var(--water)"/>
+            <circle cx="140" cy="240" r="10" fill="var(--water)"/>
+            <circle cx="180" cy="238" r="9"  fill="var(--water)"/>
+            <circle cx="118" cy="266" r="8"  fill="var(--water)"/>
+            <circle cx="160" cy="268" r="9"  fill="var(--water)"/>
+            <circle cx="176" cy="288" r="8"  fill="var(--water)"/>
+            <circle cx="150" cy="294" r="7"  fill="var(--water)"/>
+          </g>
+        </g>
+        <!-- 유리 외형 -->
+        <path d="M138,90 C108,102 74,132 74,176 C74,218 106,280 150,302 C194,280 226,218 226,176 C226,132 192,102 162,90 Z"
+              fill="none" stroke="var(--glass-line)" stroke-width="2.5"/>
+        <rect x="145" y="300" width="10" height="48" fill="none" stroke="var(--glass-line)" stroke-width="2.5"/>
+        <!-- 목/입구 -->
+        <rect x="138" y="60" width="24" height="32" fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2.5"/>
+
+        <!-- 마개 (열림 시 위로 살짝 들림) -->
+        <g id="cap" class="clickable">
+          <rect x="135" y="44" width="30" height="20" rx="5" fill="#cdd6e2" stroke="#9aa3b2" stroke-width="1.5"/>
+          <rect x="143" y="34" width="14" height="14" rx="3" fill="#b6bfce"/>
+        </g>
+        <text x="186" y="56" font-size="12.5" font-weight="700" fill="var(--navy)">마개</text>
+        <text id="capState" x="186" y="71" font-size="11" font-weight="700" fill="var(--warn)">닫힘</text>
+
+        <!-- 꼭지(stopcock) -->
+        <g id="tap" class="clickable">
+          <rect x="138" y="338" width="24" height="22" rx="4" fill="#d2dae6" stroke="#9aa3b2" stroke-width="1.5"/>
+          <g id="tapHandle" transform="rotate(0 150 349)">
+            <rect x="146" y="330" width="8" height="38" rx="3" fill="#7c8597"/>
+          </g>
+        </g>
+        <text x="170" y="346" font-size="12.5" font-weight="700" fill="var(--navy)">꼭지</text>
+        <text id="tapState" x="170" y="361" font-size="11" font-weight="700" fill="var(--warn)">닫힘</text>
+
+        <!-- 액체 라벨 -->
+        <text id="lblOil"   x="244" y="150" font-size="12.5" font-weight="700" fill="#9a7b0a" opacity="0">식용유(위층)</text>
+        <text id="lblWater" x="244" y="250" font-size="12.5" font-weight="700" fill="#2b6cb0" opacity="0">물(아래층)</text>
+      </svg>
+
+      <div class="controls">
+        <button class="b-toggle" id="btnCap">🔓 마개: <span id="capBtnTxt">닫힘</span></button>
+        <button class="b-toggle" id="btnTap">🔧 꼭지: <span id="tapBtnTxt">닫힘</span></button>
+        <button class="b-act" id="btnSettle">⏳ 정치하기(기다리기)</button>
+        <button class="b-act" id="btnPour" disabled>🫗 위층 따라내기</button>
+        <button class="b-reset" id="btnReset">↺ 처음부터</button>
+      </div>
+      <div class="safety">⚠️ 실제 실험에서 분별깔때기는 <b>유리 기구</b>입니다. 스탠드에 단단히 고정하고, 마개·꼭지를 다룰 때 깨지지 않게 조심하세요.</div>
+    </div>
+
+    <!-- 안내 패널 -->
+    <div class="panel">
+      <div class="coach" id="coach">
+        <div class="step" id="coachStep">STEP 1 / 4</div>
+        <div class="msg" id="coachMsg">혼합물이 들어 있습니다. 먼저 <b>정치하기</b>를 눌러 두 층으로 나뉘길 기다리세요.</div>
+      </div>
+
+      <div class="steps">
+        <h3>실험 순서</h3>
+        <ul style="padding:0;margin:0">
+          <li id="s1"><span class="n">1</span><span>꼭지를 잠그고 혼합물을 넣은 뒤, 두 층으로 나뉠 때까지 <b>정치</b>한다.</span></li>
+          <li id="s2"><span class="n">2</span><span><b>마개를 연다.</b> (안 열면 압력이 낮아져 잘 안 내려옴)</span></li>
+          <li id="s3"><span class="n">3</span><span><b>꼭지를 열어</b> 아래층(물)을 비커 (가)에 받는다.</span></li>
+          <li id="s4"><span class="n">4</span><span>남은 위층(식용유)은 입구로 비커 (나)에 따라낸다.</span></li>
+        </ul>
+      </div>
+
+      <div class="density">
+        <h3>밀도 비교 (왜 물이 아래일까?)</h3>
+        <div class="drow"><span class="lbl" style="color:#9a7b0a">식용유</span>
+          <div class="dbar" style="width:64%;background:var(--oil)"></div><span class="val">약 0.92 g/mL</span></div>
+        <div class="drow"><span class="lbl" style="color:#2b6cb0">물</span>
+          <div class="dbar" style="width:70%;background:var(--water)"></div><span class="val">1.00 g/mL</span></div>
+        <p style="font-size:.8rem;color:var(--muted);margin-top:6px">밀도가 큰 물이 아래로, 밀도가 작은 식용유가 위로 가라앉고 뜹니다.</p>
+      </div>
+
+      <div class="done-box" id="doneBox">
+        <h3>✅ 분리 완료!</h3>
+        <p>비커 <b>(가) = 물</b>, 비커 <b>(나) = 식용유</b>로 깔끔히 나뉘었어요.</p>
+        <div class="q">🤔 <b>생각해보기</b><br>① 마개를 열지 않으면 왜 액체가 잘 안 내려올까?<br>② 만약 물·식용유 대신 <b>섞이는</b> 두 액체라면 이 방법으로 분리할 수 있을까?</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>분별깔때기 시뮬레이션 v1.0 · 물(1.00) vs 식용유(0.92 g/mL) · 밀도 차 분리 원리</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const NS="http://www.w3.org/2000/svg";
+
+/* 좌표 상수 */
+const TOP=96, BOUND0=198, BOT=302, STEM=356;   // 액체 영역 y
+const OIL_THICK=BOUND0-TOP;                     // 식용유 두께(픽셀)
+
+let state="filled";   // filled→settling→settled→drainBottom→bottomDone→pourTop→done
+let capOpen=false, tapOpen=false;
+let drainP=0, pourP=0;          // 진행도 0~1
+let raf=null;
+
+/* ===== 액체 표시 ===== */
+function setRect(el,y,h,op){ el.setAttribute("y",y); el.setAttribute("height",Math.max(h,0)); if(op!=null)el.setAttribute("opacity",op); }
+
+function draw(){
+  const mix=$("liqMix"), water=$("liqWater"), oil=$("liqOil"), bnd=$("boundary");
+  if(state==="filled"||state==="settling"){
+    // 식용유 윗층(띠) + 아래 흐린 물층에 물방울
+    setRect(mix, TOP, STEM-TOP, 0.35);
+    setRect(oil,TOP,60,0.92); setRect(water,TOP,0,0); bnd.setAttribute("opacity",0);
+    $("emulsion").setAttribute("opacity",1);
+    $("lblOil").setAttribute("opacity",0); $("lblWater").setAttribute("opacity",0);
+  } else {
+    // 분리된 두 층
+    setRect(mix,TOP,0,0); $("emulsion").setAttribute("opacity",0);
+    // drainBottom: 컬럼이 아래로 빠지며 물층이 줄어듦
+    const oilTop = TOP + (BOT-OIL_THICK-TOP)*drainP;       // 식용유 윗면 내려감
+    const boundY = BOUND0 + (BOT-BOUND0)*drainP;           // 경계 내려감(물 빠짐)
+    // pourTop: 식용유가 위로 따라져 줄어듦
+    const oilTopP = oilTop;
+    const oilBottom = boundY - (boundY-oilTop)*pourP;      // 식용유 아랫면이 윗면 쪽으로(부피 감소)
+    const oilTopNow = oilTop + (oilBottom-oilTop)*0 ;       // 윗면 고정, 부피는 위로 빠짐 → 윗면 내려감 표현
+    // 식용유: oilTop ~ boundY 중 pour만큼 제거(윗쪽부터)
+    const oilCutTop = oilTop + (boundY-oilTop)*pourP;
+    setRect(oil, oilCutTop, boundY-oilCutTop, 0.92);
+    setRect(water, boundY, STEM-boundY, 0.9);
+    bnd.setAttribute("y", boundY-1.2); bnd.setAttribute("opacity", (drainP<1?0.55:0));
+    $("lblOil").setAttribute("opacity", (state==="settled"||state==="drainBottom")?1:0);
+    $("lblWater").setAttribute("opacity", (state==="settled"||state==="drainBottom")?1:0);
+  }
+  // 비커
+  $("fillGa").setAttribute("height", (108*drainP).toFixed(1));
+  $("fillGa").setAttribute("y", (540-108*drainP).toFixed(1));
+  $("fillNa").setAttribute("height", (86*pourP).toFixed(1));
+  $("fillNa").setAttribute("y", (540-86*pourP).toFixed(1));
+  // 스트림
+  $("streamDown").setAttribute("opacity", (state==="drainBottom"&&capOpen&&tapOpen&&drainP<1)?0.85:0);
+  $("streamUp").setAttribute("opacity", (state==="pourTop"&&pourP<1)?0.8:0);
+}
+
+/* ===== 마개/꼭지 표시 ===== */
+function updateValves(){
+  $("capState").textContent=capOpen?"열림":"닫힘";
+  $("capState").setAttribute("fill",capOpen?"var(--good)":"var(--warn)");
+  $("capBtnTxt").textContent=capOpen?"열림":"닫힘";
+  $("btnCap").classList.toggle("open",capOpen);
+  $("cap").setAttribute("transform",capOpen?"translate(0,-14)":"translate(0,0)");
+
+  $("tapState").textContent=tapOpen?"열림":"닫힘";
+  $("tapState").setAttribute("fill",tapOpen?"var(--good)":"var(--warn)");
+  $("tapBtnTxt").textContent=tapOpen?"열림":"닫힘";
+  $("btnTap").classList.toggle("open",tapOpen);
+  $("tapHandle").setAttribute("transform",tapOpen?"rotate(90 150 349)":"rotate(0 150 349)");
+}
+
+/* ===== 코치 메시지 ===== */
+function coach(msg, tone, step){
+  const c=$("coach"); c.className="coach"+(tone?" "+tone:"");
+  $("coachMsg").innerHTML=msg;
+  if(step)$("coachStep").textContent=step;
+}
+function markSteps(){
+  const order=["s1","s2","s3","s4"]; order.forEach(id=>$(id).className="");
+  const map={filled:0,settling:0,settled:1,drainBottom:2,bottomDone:3,pourTop:3,done:4};
+  const idx=map[state];
+  order.forEach((id,i)=>{ if(i<idx)$(id).className="done"; else if(i===idx)$(id).className="cur"; });
+}
+
+/* ===== 행동 ===== */
+function toggleCap(){ if(state==="done")return; capOpen=!capOpen; updateValves(); afterValveChange(); }
+function toggleTap(){ if(state==="done")return; tapOpen=!tapOpen; updateValves(); afterValveChange(); }
+
+function afterValveChange(){
+  if(state==="filled"||state==="settling"){
+    if(tapOpen){
+      coach("아직 두 층으로 안 나뉘었어요! 지금 꼭지를 열면 <b>섞인 채로</b> 흘러나와 분리에 실패합니다. 먼저 <b>정치하기</b>를 누르세요.","warn");
+    } else {
+      coach("혼합물이 들어 있습니다. <b>정치하기</b>를 눌러 두 층으로 나뉘길 기다리세요.");
+    }
+    return;
+  }
+  if(state==="settled"||state==="drainBottom"){
+    if(tapOpen && !capOpen){
+      coach("꼭지를 열었지만 액체가 잘 안 내려와요. <b>마개를 열어야</b> 깔때기 안 압력이 대기압과 같아져 액체가 시원하게 흘러내립니다. 마개를 여세요.","warn");
+      stopDrain();
+    } else if(tapOpen && capOpen){
+      startDrain();
+    } else {
+      stopDrain();
+      coach("좋아요. 이제 <b>꼭지를 열어</b> 아래층(물)을 비커 (가)에 받으세요.", "good");
+    }
+  }
+  if(state==="bottomDone"){
+    if(!tapOpen){ coach("아래층(물)을 다 받았어요. 꼭지를 잠갔으니, <b>위층 따라내기</b>를 눌러 식용유를 비커 (나)에 옮기세요.","good"); }
+  }
+}
+
+/* ===== 정치 ===== */
+function settle(){
+  if(state!=="filled"){ return; }
+  if(tapOpen){ coach("꼭지를 먼저 잠가 주세요. 열린 채로 정치하면 새어 나올 수 있어요.","warn"); return; }
+  state="settling"; markSteps();
+  coach("두 층으로 나뉘는 중… 밀도가 큰 물이 아래로 가라앉습니다.","");
+  const start=performance.now(), dur=2000;
+  const mix=$("liqMix"), oil=$("liqOil"), water=$("liqWater");
+  function step(now){
+    const k=Math.min((now-start)/dur,1);
+    // 혼합 방울 → 두 층으로 페이드
+    mix.setAttribute("opacity",(0.35*(1-k)).toFixed(2));
+    $("emulsion").setAttribute("opacity",(1-k).toFixed(2));
+    setRect(oil,TOP,60+(OIL_THICK-60)*k,0.92);
+    setRect(water,BOUND0,STEM-BOUND0,(0.9*k));
+    $("boundary").setAttribute("opacity",(0.55*k).toFixed(2));
+    if(k<1) raf=requestAnimationFrame(step);
+    else{ state="settled"; markSteps(); draw();
+      $("lblOil").setAttribute("opacity",1); $("lblWater").setAttribute("opacity",1);
+      coach("두 층으로 나뉘었어요! 위는 <b>식용유</b>, 아래는 <b>물</b>입니다. 이제 <b>마개를 열고</b> → <b>꼭지를 열어</b> 아래층(물)부터 받으세요.","good","STEP 2 / 4");
+    }
+  }
+  raf=requestAnimationFrame(step);
+}
+
+/* ===== 아래층 배수 ===== */
+function startDrain(){
+  if(state==="settled") { state="drainBottom"; markSteps(); coach("물이 비커 (가)로 내려가고 있어요. 다 빠지면 꼭지를 잠그세요.","good","STEP 3 / 4"); }
+  if(raf) return;
+  let last=performance.now();
+  function loop(now){
+    const dt=(now-last)/1000; last=now;
+    if(state==="drainBottom" && capOpen && tapOpen && drainP<1){
+      drainP=Math.min(drainP+dt*0.32,1); draw();
+      if(drainP>=1){
+        state="bottomDone"; tapOpen=false; updateValves(); markSteps(); draw();
+        coach("아래층(물)을 모두 받았어요! 자동으로 꼭지를 잠갔습니다. 이제 <b>위층 따라내기</b>로 식용유를 비커 (나)에 옮기세요.","good","STEP 4 / 4");
+        $("btnPour").disabled=false; raf=null; return;
+      }
+      raf=requestAnimationFrame(loop);
+    } else { raf=null; }
+  }
+  raf=requestAnimationFrame(loop);
+}
+function stopDrain(){ if(raf){cancelAnimationFrame(raf);raf=null;} draw(); }
+
+/* ===== 위층 따라내기 ===== */
+function pourTop(){
+  if(state!=="bottomDone")return;
+  state="pourTop"; $("btnPour").disabled=true; markSteps();
+  coach("식용유를 입구로 비커 (나)에 따르는 중…","");
+  const start=performance.now(),dur=1800;
+  function step(now){
+    const k=Math.min((now-start)/dur,1); pourP=k; draw();
+    if(k<1)raf=requestAnimationFrame(step);
+    else{ state="done"; markSteps(); draw();
+      coach("분리 완료! 비커 (가)=물, 비커 (나)=식용유 👏","good","완료");
+      $("doneBox").classList.add("show");
+    }
+  }
+  raf=requestAnimationFrame(step);
+}
+
+/* ===== 리셋 ===== */
+function reset(){
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  state="filled"; capOpen=false; tapOpen=false; drainP=0; pourP=0;
+  updateValves(); markSteps(); draw();
+  $("btnPour").disabled=true; $("doneBox").classList.remove("show");
+  coach("혼합물이 들어 있습니다. 먼저 <b>정치하기</b>를 눌러 두 층으로 나뉘길 기다리세요.","","STEP 1 / 4");
+}
+
+/* ===== 이벤트 ===== */
+$("btnCap").onclick=toggleCap;  $("cap").onclick=toggleCap;
+$("btnTap").onclick=toggleTap;  $("tap").onclick=toggleTap;
+$("btnSettle").onclick=settle;
+$("btnPour").onclick=pourTop;
+$("btnReset").onclick=reset;
+
+reset();
+</script>
+</body>
+</html>
