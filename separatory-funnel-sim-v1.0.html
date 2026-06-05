@@ -122,7 +122,7 @@
         </g>
 
         <!-- 스트림: 아래로(가) / 위로(나) -->
-        <rect id="streamDown" x="146" y="372" width="8" height="62" fill="var(--water)" opacity="0" rx="3"/>
+        <rect id="streamDown" x="146" y="410" width="8" height="24" fill="var(--water)" opacity="0" rx="3"/>
         <path id="streamUp" d="M150,96 C150,40 342,40 342,452" fill="none" stroke="var(--oil)" stroke-width="8" opacity="0" stroke-linecap="round"/>
 
         <!-- ===== 분별깔때기 ===== -->
@@ -160,6 +160,10 @@
         </g>
         <text x="186" y="56" font-size="12.5" font-weight="700" fill="var(--navy)">마개</text>
         <text id="capState" x="186" y="71" font-size="11" font-weight="700" fill="var(--warn)">닫힘</text>
+
+        <!-- 꼭지 아래 유출관(유리관) -->
+        <path d="M145,357 L155,357 L155,400 L152,410 L148,410 L145,400 Z"
+              fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2.5"/>
 
         <!-- 꼭지(stopcock) -->
         <g id="tap" class="clickable">
