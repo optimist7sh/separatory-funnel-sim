@@ -98,8 +98,11 @@
         <!-- 스탠드 기둥 -->
         <rect x="392" y="60" width="10" height="500" rx="4" fill="#9aa3b2"/>
         <rect x="300" y="556" width="118" height="12" rx="5" fill="#9aa3b2"/>
-        <!-- 집게(분별깔때기 고정) -->
-        <rect x="226" y="170" width="170" height="9" rx="4" fill="#7c8597"/>
+
+        <!-- ===== 링스탠드: 암 + 보스 + 링 뒤쪽 호 (깔때기 뒤) ===== -->
+        <rect x="200" y="282" width="194" height="8" rx="4" fill="#7c8597"/>
+        <rect x="386" y="273" width="16" height="26" rx="3" fill="#6b7280"/>
+        <path d="M96,286 A54 14 0 0 0 204,286" fill="none" stroke="#5b6370" stroke-width="6.5" stroke-linecap="round"/>
 
         <!-- 비커 (가) : 아래층(물) 받기 -->
         <g id="beakerGa">
@@ -135,22 +138,8 @@
           <rect id="liqOil"   x="60" y="96"  width="200" height="104" fill="var(--oil)" opacity="0"/>
           <!-- 경계선 -->
           <rect id="boundary" x="60" y="198" width="200" height="2.4" fill="#2c3a52" opacity="0"/>
-          <!-- 아래층(물)에 흩어진 물방울 — 식용유는 위에서 층으로 뜸 -->
-          <g id="emulsion" opacity="0">
-            <circle cx="110" cy="180" r="9"  fill="var(--water)"/>
-            <circle cx="150" cy="178" r="10" fill="var(--water)"/>
-            <circle cx="190" cy="182" r="8"  fill="var(--water)"/>
-            <circle cx="120" cy="210" r="10" fill="var(--water)"/>
-            <circle cx="160" cy="212" r="11" fill="var(--water)"/>
-            <circle cx="198" cy="208" r="9"  fill="var(--water)"/>
-            <circle cx="100" cy="236" r="8"  fill="var(--water)"/>
-            <circle cx="140" cy="240" r="10" fill="var(--water)"/>
-            <circle cx="180" cy="238" r="9"  fill="var(--water)"/>
-            <circle cx="118" cy="266" r="8"  fill="var(--water)"/>
-            <circle cx="160" cy="268" r="9"  fill="var(--water)"/>
-            <circle cx="176" cy="288" r="8"  fill="var(--water)"/>
-            <circle cx="150" cy="294" r="7"  fill="var(--water)"/>
-          </g>
+          <!-- (물방울 제거됨) 빈 그룹 — JS 호환용 -->
+          <g id="emulsion" opacity="0"></g>
         </g>
         <!-- 유리 외형 -->
         <path d="M138,90 C108,102 74,132 74,176 C74,218 106,280 150,302 C194,280 226,218 226,176 C226,132 192,102 162,90 Z"
@@ -158,6 +147,9 @@
         <rect x="145" y="300" width="10" height="48" fill="none" stroke="var(--glass-line)" stroke-width="2.5"/>
         <!-- 목/입구 -->
         <rect x="138" y="60" width="24" height="32" fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2.5"/>
+
+        <!-- 금속 링: 앞쪽 호 (깔때기 앞으로 — 걸쳐진 느낌) -->
+        <path d="M96,286 A54 14 0 0 0 204,286" fill="none" stroke="#6b7280" stroke-width="6.5" stroke-linecap="round" transform="rotate(180 150 286)"/>
 
         <!-- 마개 (열림 시 위로 살짝 들림) -->
         <g id="cap" class="clickable">
@@ -170,7 +162,7 @@
         <!-- 꼭지(stopcock) -->
         <g id="tap" class="clickable">
           <rect x="138" y="338" width="24" height="22" rx="4" fill="#d2dae6" stroke="#9aa3b2" stroke-width="1.5"/>
-          <g id="tapHandle" transform="rotate(0 150 349)">
+          <g id="tapHandle" transform="rotate(90 150 349)">
             <rect x="146" y="330" width="8" height="38" rx="3" fill="#7c8597"/>
           </g>
         </g>
@@ -248,10 +240,12 @@ function setRect(el,y,h,op){ el.setAttribute("y",y); el.setAttribute("height",Ma
 function draw(){
   const mix=$("liqMix"), water=$("liqWater"), oil=$("liqOil"), bnd=$("boundary");
   if(state==="filled"||state==="settling"){
-    // 식용유 윗층(띠) + 아래 흐린 물층에 물방울
-    setRect(mix, TOP, STEM-TOP, 0.35);
-    setRect(oil,TOP,60,0.92); setRect(water,TOP,0,0); bnd.setAttribute("opacity",0);
-    $("emulsion").setAttribute("opacity",1);
+    // 식용유 윗층 + 파란 물 아래층 (물방울 없음)
+    setRect(mix, TOP, 0, 0);
+    setRect(oil, TOP, OIL_THICK, 0.92);
+    setRect(water, BOUND0, STEM-BOUND0, 0.9);
+    bnd.setAttribute("y", BOUND0-1.2); bnd.setAttribute("opacity",0.55);
+    $("emulsion").setAttribute("opacity",0);
     $("lblOil").setAttribute("opacity",0); $("lblWater").setAttribute("opacity",0);
   } else {
     // 분리된 두 층
@@ -293,7 +287,7 @@ function updateValves(){
   $("tapState").setAttribute("fill",tapOpen?"var(--good)":"var(--warn)");
   $("tapBtnTxt").textContent=tapOpen?"열림":"닫힘";
   $("btnTap").classList.toggle("open",tapOpen);
-  $("tapHandle").setAttribute("transform",tapOpen?"rotate(90 150 349)":"rotate(0 150 349)");
+  $("tapHandle").setAttribute("transform",tapOpen?"rotate(0 150 349)":"rotate(90 150 349)");
 }
 
 /* ===== 코치 메시지 ===== */
