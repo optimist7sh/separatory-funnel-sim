@@ -110,6 +110,7 @@
         <g id="beakerGa">
           <path d="M104,432 L196,432 L188,540 L112,540 Z" fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2"/>
           <clipPath id="clipGa"><path d="M104,432 L196,432 L188,540 L112,540 Z"/></clipPath>
+          <rect id="fillGaSrc" x="100" y="445" width="100" height="95" fill="var(--mix)" clip-path="url(#clipGa)" opacity="0.82"/>
           <rect id="fillGa" x="100" y="540" width="100" height="0" fill="var(--water)" clip-path="url(#clipGa)" opacity="0.9"/>
           <text x="150" y="556" text-anchor="middle" font-size="13" font-weight="700" fill="var(--navy)">비커 (가)</text>
         </g>
@@ -155,6 +156,10 @@
         <g id="topFunnel" opacity="0">
           <path d="M112,18 L188,18 L158,48 L158,62 L142,62 L142,48 Z"
                 fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2.5"/>
+          <clipPath id="funnelTopClip"><path d="M112,18 L188,18 L158,48 L158,62 L142,62 L142,48 Z"/></clipPath>
+          <rect id="funnelMix" x="112" y="18" width="76" height="46" fill="var(--mix)" opacity="0.82" clip-path="url(#funnelTopClip)"/>
+          <path d="M112,18 L188,18 L158,48 L158,62 L142,62 L142,48 Z"
+                fill="none" stroke="var(--glass-line)" stroke-width="2.5"/>
           <text x="196" y="32" font-size="11.5" font-weight="700" fill="var(--navy)">깔때기</text>
         </g>
 
@@ -260,6 +265,8 @@ function draw(){
   $("cap").setAttribute("opacity",showFunnel?0:1);
   $("capLbl").setAttribute("opacity",showFunnel?0:1);
   $("capState").setAttribute("opacity",showFunnel?0:1);
+  // 비커(가) 속 출발 혼합물 — empty 상태에서만
+  setRect($("fillGaSrc"), 445, state==="empty"?95:0, state==="empty"?0.82:0);
   if(state==="empty"){
     // 빈 분별깔때기 — 입구에 깔때기 꽂은 상태
     setRect(mix,TOP,0,0); setRect(oil,TOP,0,0); setRect(water,TOP,0,0);
@@ -377,6 +384,7 @@ function pourIn(){
     const k=Math.min((now-start)/dur,1);
     const h=(STEM-TOP)*k;
     setRect(mix, STEM-h, h, 0.82);
+    setRect($("fillGaSrc"), 540-95*(1-k), 95*(1-k), 0.82);  // 비커(가) 혼합물 줄어듦
     if(k<1) raf=requestAnimationFrame(step);
     else{
       state="filled"; raf=null;
