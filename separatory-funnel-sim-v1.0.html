@@ -150,6 +150,14 @@
         <!-- 목/입구 -->
         <rect x="138" y="60" width="24" height="32" fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2.5"/>
 
+        <!-- 혼합물 주입 스트림 + 입구에 꽂는 깔때기 (STEP 1) -->
+        <rect id="streamIn" x="146" y="54" width="8" height="46" fill="var(--mix)" opacity="0" rx="3"/>
+        <g id="topFunnel" opacity="0">
+          <path d="M112,18 L188,18 L158,48 L158,62 L142,62 L142,48 Z"
+                fill="var(--glass)" stroke="var(--glass-line)" stroke-width="2.5"/>
+          <text x="196" y="32" font-size="11.5" font-weight="700" fill="var(--navy)">깔때기</text>
+        </g>
+
         <!-- 금속 링: 앞쪽 호 (깔때기 앞으로 — 걸쳐진 느낌) -->
         <path d="M96,286 A54 14 0 0 0 204,286" fill="none" stroke="#6b7280" stroke-width="6.5" stroke-linecap="round" transform="rotate(180 150 286)"/>
 
@@ -158,7 +166,7 @@
           <rect x="135" y="44" width="30" height="20" rx="5" fill="#cdd6e2" stroke="#9aa3b2" stroke-width="1.5"/>
           <rect x="143" y="34" width="14" height="14" rx="3" fill="#b6bfce"/>
         </g>
-        <text x="186" y="56" font-size="12.5" font-weight="700" fill="var(--navy)">마개</text>
+        <text id="capLbl" x="186" y="56" font-size="12.5" font-weight="700" fill="var(--navy)">마개</text>
         <text id="capState" x="186" y="71" font-size="11" font-weight="700" fill="var(--warn)">닫힘</text>
 
         <!-- 꼭지 아래 유출관(유리관) -->
@@ -183,6 +191,7 @@
       <div class="controls">
         <button class="b-toggle" id="btnCap">🔓 마개: <span id="capBtnTxt">닫힘</span></button>
         <button class="b-toggle" id="btnTap">🔧 꼭지: <span id="tapBtnTxt">닫힘</span></button>
+        <button class="b-act" id="btnFill">🧪 혼합물 넣기</button>
         <button class="b-act" id="btnSettle">⏳ 평평하고 일정한 곳에 두기(기다리기)</button>
         <button class="b-act" id="btnPour" disabled>🫗 위층 따라내기</button>
         <button class="b-reset" id="btnReset">↺ 처음부터</button>
@@ -245,17 +254,29 @@ function setRect(el,y,h,op){ el.setAttribute("y",y); el.setAttribute("height",Ma
 
 function draw(){
   const mix=$("liqMix"), water=$("liqWater"), oil=$("liqOil"), bnd=$("boundary");
-  if(state==="filled"||state==="settling"){
-    // 식용유 윗층 + 파란 물 아래층 (물방울 없음)
-    setRect(mix, TOP, 0, 0);
-    setRect(oil, TOP, OIL_THICK, 0.92);
-    setRect(water, BOUND0, STEM-BOUND0, 0.9);
-    bnd.setAttribute("y", BOUND0-1.2); bnd.setAttribute("opacity",0.55);
-    $("emulsion").setAttribute("opacity",0);
+  // 입구 깔때기 / 마개 표시 토글
+  const showFunnel=(state==="empty"||state==="pouring");
+  $("topFunnel").setAttribute("opacity",showFunnel?1:0);
+  $("cap").setAttribute("opacity",showFunnel?0:1);
+  $("capLbl").setAttribute("opacity",showFunnel?0:1);
+  $("capState").setAttribute("opacity",showFunnel?0:1);
+  if(state==="empty"){
+    // 빈 분별깔때기 — 입구에 깔때기 꽂은 상태
+    setRect(mix,TOP,0,0); setRect(oil,TOP,0,0); setRect(water,TOP,0,0);
+    bnd.setAttribute("opacity",0); $("emulsion").setAttribute("opacity",0);
     $("lblOil").setAttribute("opacity",0); $("lblWater").setAttribute("opacity",0);
+    $("streamIn").setAttribute("opacity",0);
+  } else if(state==="filled"||state==="settling"){
+    // 갓 부은 혼합물 — 섞인 흐린 상태
+    setRect(mix, TOP, STEM-TOP, 0.82);
+    setRect(oil,TOP,0,0); setRect(water,TOP,0,0);
+    bnd.setAttribute("opacity",0); $("emulsion").setAttribute("opacity",0);
+    $("lblOil").setAttribute("opacity",0); $("lblWater").setAttribute("opacity",0);
+    $("streamIn").setAttribute("opacity",0);
   } else {
     // 분리된 두 층
     setRect(mix,TOP,0,0); $("emulsion").setAttribute("opacity",0);
+    $("streamIn").setAttribute("opacity",0);
     // drainBottom: 컬럼이 아래로 빠지며 물층이 줄어듦
     const oilTop = TOP + (BOT-OIL_THICK-TOP)*drainP;       // 식용유 윗면 내려감
     const boundY = BOUND0 + (BOT-BOUND0)*drainP;           // 경계 내려감(물 빠짐)
@@ -304,7 +325,7 @@ function coach(msg, tone, step){
 }
 function markSteps(){
   const order=["s1","s2","s3","s4"]; order.forEach(id=>$(id).className="");
-  const map={filled:0,settling:0,settled:1,drainBottom:2,bottomDone:3,pourTop:3,done:4};
+  const map={empty:0,pouring:0,filled:1,settling:1,settled:2,drainBottom:2,bottomDone:3,pourTop:3,done:4};
   const idx=map[state];
   order.forEach((id,i)=>{ if(i<idx)$(id).className="done"; else if(i===idx)$(id).className="cur"; });
 }
@@ -314,6 +335,11 @@ function toggleCap(){ if(state==="done")return; capOpen=!capOpen; updateValves()
 function toggleTap(){ if(state==="done")return; tapOpen=!tapOpen; updateValves(); afterValveChange(); }
 
 function afterValveChange(){
+  if(state==="empty"||state==="pouring"){
+    if(tapOpen) coach("혼합물을 넣기 전에는 꼭지를 <b>잠근</b> 상태로 두세요.","warn");
+    else coach("꼭지를 잠갔어요. <b>혼합물 넣기</b>를 눌러 깔때기로 물·식용유 혼합물을 넣으세요.","","STEP 1 / 4");
+    return;
+  }
   if(state==="filled"||state==="settling"){
     if(tapOpen){
       coach("아직 두 층으로 안 나뉘었어요! 지금 꼭지를 열면 <b>섞인 채로</b> 흘러나와 분리에 실패합니다. 먼저 <b>평평하고 일정한 곳에 두기</b>를 누르세요.","warn");
@@ -338,8 +364,33 @@ function afterValveChange(){
   }
 }
 
+/* ===== 혼합물 넣기 (STEP 1) ===== */
+function pourIn(){
+  if(state!=="empty"){ return; }
+  if(tapOpen){ coach("꼭지를 먼저 <b>잠가</b> 주세요. 꼭지를 잠근 뒤 혼합물을 넣습니다.","warn"); return; }
+  state="pouring"; $("btnFill").disabled=true; markSteps();
+  $("topFunnel").setAttribute("opacity",1); $("cap").setAttribute("opacity",0);
+  $("streamIn").setAttribute("opacity",0.85);
+  coach("입구에 깔때기를 꽂고 물·식용유 혼합물을 붓는 중…","");
+  const start=performance.now(), dur=1500, mix=$("liqMix");
+  function step(now){
+    const k=Math.min((now-start)/dur,1);
+    const h=(STEM-TOP)*k;
+    setRect(mix, STEM-h, h, 0.82);
+    if(k<1) raf=requestAnimationFrame(step);
+    else{
+      state="filled"; raf=null;
+      $("streamIn").setAttribute("opacity",0);
+      markSteps(); draw();
+      coach("혼합물을 넣었어요. 깔때기를 빼고 <b>평평하고 일정한 곳에 두기</b>를 눌러 두 층으로 나뉘길 기다리세요.","good","STEP 2 / 4");
+    }
+  }
+  raf=requestAnimationFrame(step);
+}
+
 /* ===== 평평하고 일정한 곳에 두기 ===== */
 function settle(){
+  if(state==="empty"||state==="pouring"){ coach("먼저 <b>혼합물 넣기</b>로 혼합물을 넣으세요.","warn"); return; }
   if(state!=="filled"){ return; }
   if(tapOpen){ coach("꼭지를 먼저 잠가 주세요. 열린 채로 평평하고 일정한 곳에 두면 새어 나올 수 있어요.","warn"); return; }
   state="settling"; markSteps();
@@ -348,16 +399,15 @@ function settle(){
   const mix=$("liqMix"), oil=$("liqOil"), water=$("liqWater");
   function step(now){
     const k=Math.min((now-start)/dur,1);
-    // 혼합 방울 → 두 층으로 페이드
-    mix.setAttribute("opacity",(0.35*(1-k)).toFixed(2));
-    $("emulsion").setAttribute("opacity",(1-k).toFixed(2));
-    setRect(oil,TOP,60+(OIL_THICK-60)*k,0.92);
+    // 섞인 혼합물 → 두 층으로 페이드
+    mix.setAttribute("opacity",(0.82*(1-k)).toFixed(2));
+    setRect(oil,TOP,OIL_THICK*k,0.92);
     setRect(water,BOUND0,STEM-BOUND0,(0.9*k));
     $("boundary").setAttribute("opacity",(0.55*k).toFixed(2));
     if(k<1) raf=requestAnimationFrame(step);
     else{ state="settled"; markSteps(); draw();
       $("lblOil").setAttribute("opacity",1); $("lblWater").setAttribute("opacity",1);
-      coach("두 층으로 나뉘었어요! 위는 <b>식용유</b>, 아래는 <b>물</b>입니다. 이제 <b>마개를 열고</b> → <b>꼭지를 열어</b> 아래층(물)부터 받으세요.","good","STEP 2 / 4");
+      coach("두 층으로 나뉘었어요! 위는 <b>식용유</b>, 아래는 <b>물</b>입니다. 이제 <b>마개를 열고</b> → <b>꼭지를 열어</b> 아래층(물)부터 받으세요.","good","STEP 3 / 4");
     }
   }
   raf=requestAnimationFrame(step);
@@ -404,15 +454,16 @@ function pourTop(){
 /* ===== 리셋 ===== */
 function reset(){
   if(raf){cancelAnimationFrame(raf);raf=null;}
-  state="filled"; capOpen=false; tapOpen=false; drainP=0; pourP=0;
+  state="empty"; capOpen=false; tapOpen=false; drainP=0; pourP=0;
   updateValves(); markSteps(); draw();
-  $("btnPour").disabled=true; $("doneBox").classList.remove("show");
-  coach("혼합물이 들어 있습니다. 먼저 <b>평평하고 일정한 곳에 두기</b>를 눌러 두 층으로 나뉘길 기다리세요.","","STEP 1 / 4");
+  $("btnFill").disabled=false; $("btnPour").disabled=true; $("doneBox").classList.remove("show");
+  coach("꼭지를 잠근 뒤, <b>혼합물 넣기</b>를 눌러 입구에 깔때기를 꽂고 물·식용유 혼합물을 넣으세요.","","STEP 1 / 4");
 }
 
 /* ===== 이벤트 ===== */
 $("btnCap").onclick=toggleCap;  $("cap").onclick=toggleCap;
 $("btnTap").onclick=toggleTap;  $("tap").onclick=toggleTap;
+$("btnFill").onclick=pourIn;
 $("btnSettle").onclick=settle;
 $("btnPour").onclick=pourTop;
 $("btnReset").onclick=reset;
